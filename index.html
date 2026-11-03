@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>etag demo</title>
+<style>
+  :root { --bg:#f6f6f4; --card:#fff; --ink:#1b1b1b; --muted:#6b6b6b; --accent:#d62828; --line:#e2e2de; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#151515; --card:#202020; --ink:#f0f0f0; --muted:#9a9a9a; --line:#333; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,sans-serif; display:flex; justify-content:center; padding:24px 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:24px; width:100%; max-width:440px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
+  .preview { display:flex; justify-content:center; margin-bottom:20px; }
+  canvas { width:200px; height:200px; image-rendering:pixelated; border:1px solid var(--line); background:#fff; }
+  .row { display:flex; gap:10px; margin-bottom:12px; }
+  button { flex:1; padding:11px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); font:inherit; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .status { font-size:13px; color:var(--muted); margin-bottom:10px; }
+  .status b { color:var(--ink); }
+  progress { width:100%; height:8px; margin-bottom:12px; }
+  pre { background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:10px; font-size:12px; height:140px; overflow:auto; margin:0; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>etag demo</h1>
+  <p class="sub">Send a built-in 200×200 black / white / red pattern to your e-ink tag over Bluetooth.</p>
+
+  <div class="preview"><canvas id="preview" width="200" height="200"></canvas></div>
+
+  <div class="status">Device: <b id="devName">not connected</b></div>
+
+  <div class="row">
+    <button id="connectBtn">Connect</button>
+    <button id="sendBtn" class="primary" disabled>Upload to display</button>
+  </div>
+
+  <progress id="bar" value="0" max="100"></progress>
+  <pre id="log"></pre>
+</div>
+
+<script>
+// ---- Must match the Arduino sketch ----
+const SERVICE     = 'e7a10001-5b3c-4f1e-9a21-7c4d8b2f6a10';
+const DATA_CHAR   = 'e7a10002-5b3c-4f1e-9a21-7c4d8b2f6a10';
+const STATUS_CHAR = 'e7a10003-5b3c-4f1e-9a21-7c4d8b2f6a10';
+
+const W = 200, H = 200;
+const LAYER = W * H / 8;   // 5000 bytes per colour layer
+const CHUNK = 200;         // payload bytes per BLE write (tune later)
+
+const $ = id => document.getElementById(id);
+const log = m => { const l = $('log'); l.textContent += m + '\n'; l.scrollTop = l.scrollHeight; };
+
+// ---- Demo pattern: 0 = white, 1 = black, 2 = red ----
+function pixel(x, y) {
+  const dx = x - 100, dy = y - 100;
+  if (Math.hypot(dx, dy) < 18) return 2;                  // red centre dot
+  if (Math.abs(dx - dy) < 2 || Math.abs(dx + dy) < 2) return 1;  // black diagonals
+  const d = Math.max(Math.abs(dx), Math.abs(dy));          // concentric squares
+  const band = Math.floor(d / 10) % 3;
+  return band === 0 ? 1 : band === 1 ? 2 : 0;
+}
+
+// ---- Pack into two 1-bit layers (bit 1 = ink, MSB first, row-major) ----
+function buildDemo() {
+  const black = new Uint8Array(LAYER), red = new Uint8Array(LAYER);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const p = pixel(x, y);
+      const i = y * (W / 8) + (x >> 3), m = 0x80 >> (x & 7);
+      if (p === 1) black[i] |= m;
+      else if (p === 2) red[i] |= m;
+    }
+  }
+  return { black, red };
+}
+
+// ---- Preview (decoded from the packed arrays, so it verifies the packing) ----
+function drawPreview({ black, red }) {
+  const ctx = $('preview').getContext('2d');
+  const img = ctx.createImageData(W, H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = y * (W / 8) + (x >> 3), m = 0x80 >> (x & 7);
+      const o = (y * W + x) * 4;
+      let c = [255, 255, 255];
+      if (black[i] & m) c = [20, 20, 20];
+      else if (red[i] & m) c = [214, 40, 40];
+      img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+const demo = buildDemo();
+drawPreview(demo);
+
+// ---- BLE ----
+let device, dataChar, statusChar, waiter = null;
+
+function onStatus(e) {
+  const t = new TextDecoder().decode(e.target.value);
+  log('ESP: ' + t);
+  if (!waiter) return;
+  if (t.startsWith('ERR')) waiter.rej(new Error(t));
+  else if (t === waiter.want) waiter.res(t);
+}
+
+function waitFor(want, ms = 30000) {
+  return new Promise((res, rej) => {
+    const to = setTimeout(() => { waiter = null; rej(new Error('Timeout waiting for ' + want)); }, ms);
+    waiter = {
+      want,
+      res: v => { clearTimeout(to); waiter = null; res(v); },
+      rej: e => { clearTimeout(to); waiter = null; rej(e); }
+    };
+  });
+}
+
+async function connect() {
+  if (!navigator.bluetooth) { log('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE] }],   // only etag devices show up
+      optionalServices: [SERVICE]
+    });
+    device.addEventListener('gattserverdisconnected', () => {
+      $('devName').textContent = 'not connected';
+      $('sendBtn').disabled = true;
+      log('Disconnected');
+    });
+    const server = await device.gatt.connect();
+    const svc = await server.getPrimaryService(SERVICE);
+    dataChar = await svc.getCharacteristic(DATA_CHAR);
+    statusChar = await svc.getCharacteristic(STATUS_CHAR);
+    await statusChar.startNotifications();
+    statusChar.addEventListener('characteristicvaluechanged', onStatus);
+    $('devName').textContent = device.name || 'etag';
+    $('sendBtn').disabled = false;
+    log('Connected to ' + (device.name || 'etag'));
+  } catch (err) {
+    log('Connect failed: ' + err.message);
+  }
+}
+
+async function upload() {
+  $('sendBtn').disabled = true;
+  $('bar').value = 0;
+  try {
+    const payload = new Uint8Array(LAYER * 2);
+    payload.set(demo.black, 0);
+    payload.set(demo.red, LAYER);
+    let sum = 0;
+    for (const b of payload) sum = (sum + b) & 0xFF;
+
+    // START
+    let p = waitFor('READY');
+    await dataChar.writeValueWithResponse(new Uint8Array([0x01, payload.length & 255, payload.length >> 8]));
+    await p;
+
+    // DATA chunks
+    const total = Math.ceil(payload.length / CHUNK);
+    for (let i = 0; i < total; i++) {
+      const part = payload.subarray(i * CHUNK, (i + 1) * CHUNK);
+      const pkt = new Uint8Array(3 + part.length);
+      pkt[0] = 0x02; pkt[1] = i & 255; pkt[2] = i >> 8;
+      pkt.set(part, 3);
+      await dataChar.writeValueWithResponse(pkt);
+      $('bar').value = ((i + 1) / total) * 100;
+    }
+
+    // END + checksum
+    p = waitFor('OK');
+    await dataChar.writeValueWithResponse(new Uint8Array([0x03, sum]));
+    await p;
+
+    log('Transfer verified. Display refreshing (~15 s)...');
+    await waitFor('DONE', 60000);
+    log('Done!');
+  } catch (err) {
+    log('Upload failed: ' + err.message);
+  }
+  $('sendBtn').disabled = !(device && device.gatt.connected);
+}
+
+$('connectBtn').onclick = connect;
+$('sendBtn').onclick = upload;
+</script>
+</body>
+</html>
