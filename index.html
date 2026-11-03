@@ -2,111 +2,2094 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>etag demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>E-Ink Tag Studio (Waveshare 1.54" Tri-Color 200×200)</title>
 <style>
-  :root { --bg:#f6f6f4; --card:#fff; --ink:#1b1b1b; --muted:#6b6b6b; --accent:#d62828; --line:#e2e2de; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#151515; --card:#202020; --ink:#f0f0f0; --muted:#9a9a9a; --line:#333; }
+  :root {
+    --bg: #f3f4f8;
+    --card: #ffffff;
+    --card-header: #f8fafc;
+    --ink: #0f172a;
+    --ink-secondary: #475569;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --accent: #d62828;
+    --accent-hover: #b71c1c;
+    --accent-soft: rgba(214, 40, 40, 0.08);
+    --surface: #f8fafc;
+    --surface-hover: #f1f5f9;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --info: #0284c7;
+    --radius: 12px;
+    --shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
   }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,sans-serif; display:flex; justify-content:center; padding:24px 16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:24px; width:100%; max-width:440px; }
-  h1 { font-size:20px; margin:0 0 4px; }
-  p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
-  .preview { display:flex; justify-content:center; margin-bottom:20px; }
-  canvas { width:200px; height:200px; image-rendering:pixelated; border:1px solid var(--line); background:#fff; }
-  .row { display:flex; gap:10px; margin-bottom:12px; }
-  button { flex:1; padding:11px 14px; border:1px solid var(--line); border-radius:9px; background:var(--card); color:var(--ink); font:inherit; cursor:pointer; }
-  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
-  button:disabled { opacity:.45; cursor:not-allowed; }
-  .status { font-size:13px; color:var(--muted); margin-bottom:10px; }
-  .status b { color:var(--ink); }
-  progress { width:100%; height:8px; margin-bottom:12px; }
-  pre { background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:10px; font-size:12px; height:140px; overflow:auto; margin:0; white-space:pre-wrap; }
+
+  html.dark {
+    --bg: #0b0f19;
+    --card: #131b2e;
+    --card-header: #19243c;
+    --ink: #f8fafc;
+    --ink-secondary: #cbd5e1;
+    --muted: #94a3b8;
+    --line: #22304c;
+    --accent: #ef4444;
+    --accent-hover: #dc2626;
+    --accent-soft: rgba(239, 68, 68, 0.15);
+    --surface: #18233a;
+    --surface-hover: #1f2d4a;
+    --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1140px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: var(--card);
+    padding: 14px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #1b1b1b 33%, #d62828 33% 66%, #ffffff 66%);
+    border: 1px solid var(--line);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  .brand h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .brand p {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Browser Compatibility Alert */
+  .compat-banner {
+    display: none;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: 13px;
+  }
+  html.dark .compat-banner {
+    background: #2b1f0c;
+    border-color: #5c3c0a;
+    color: #fef3c7;
+  }
+  .compat-banner svg { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; }
+
+  /* =========================================================================
+     DESKTOP SIDE-BY-SIDE WORKSPACE LAYOUT
+     Picture Window (Left) next to Adjustment Window (Right)
+     ========================================================================= */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+    align-items: start;
+  }
+  @media (min-width: 880px) {
+    .workspace {
+      grid-template-columns: 460px 1fr;
+    }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-header {
+    padding: 10px 16px;
+    background: var(--card-header);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* =========================================================================
+     PICTURE WINDOW (COMBINED SOURCE & SIMULATION WITH TOGGLE)
+     ========================================================================= */
+  .view-segmented {
+    display: inline-flex;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .view-tab {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .view-tab:hover {
+    color: var(--ink);
+  }
+  .view-tab.active {
+    background: var(--card);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .stage-viewport {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 0;
+    min-height: 230px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--line);
+  }
+
+  .canvas-stage {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    background: #ffffff;
+    user-select: none;
+    touch-action: none;
+    flex-shrink: 0;
+    transition: width 0.15s ease, height 0.15s ease;
+  }
+  .canvas-stage canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border-radius: 6px;
+    cursor: grab;
+  }
+  .canvas-stage canvas:active {
+    cursor: grabbing;
+  }
+
+  /* Grid overlay using percentage background-size */
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px dashed rgba(0, 0, 0, 0.25);
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.12) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.12) 1px, transparent 1px);
+    background-size: 33.333% 33.333%;
+    display: none;
+    border-radius: 6px;
+  }
+  .grid-overlay.active { display: block; }
+
+  /* Toolbar buttons */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s ease;
+  }
+  .btn-icon:hover {
+    background: var(--surface-hover);
+    border-color: var(--muted);
+  }
+  .btn-icon.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Pixel breakdown pill */
+  .pixel-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+  .stat-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .stat-dot.black { background: #141414; }
+  .stat-dot.red { background: #d62828; }
+  .stat-dot.white { background: #e5e5e5; border: 1px solid #999; }
+
+  /* =========================================================================
+     ADJUSTMENT WINDOW (EARLIER TAB NAVIGATION STYLE)
+     ========================================================================= */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    background: var(--card-header);
+    padding: 0 8px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    border: none;
+    background: none;
+    padding: 12px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--ink); background: none; }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+  .tab-pane {
+    display: none;
+    padding: 18px;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .tab-pane.active { display: flex; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .control-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .control-value {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+  }
+
+  /* Custom Dropzone */
+  .dropzone {
+    border: 2px dashed var(--line);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--surface);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone-title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .dropzone-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Segmented buttons & chips */
+  .chip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 6px;
+  }
+  .chip-btn {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--ink);
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .chip-btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--muted);
+  }
+  .chip-btn.active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* Sliders */
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--line);
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--card);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  }
+
+  /* Toggle Switch */
+  .switch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .switch {
+    position: relative;
+    width: 38px;
+    height: 22px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider-round {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background-color: var(--line);
+    transition: .2s;
+    border-radius: 22px;
+  }
+  .slider-round:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .2s;
+    border-radius: 50%;
+  }
+  input:checked + .slider-round {
+    background-color: var(--accent);
+  }
+  input:checked + .slider-round:before {
+    transform: translateX(16px);
+  }
+
+  /* Buttons */
+  button {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  button:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--muted);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  button.primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-row > * { flex: 1; }
+
+  /* Bluetooth Status Badge */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .status-indicator.connected {
+    background: var(--success);
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.25);
+  }
+  .status-indicator.transferring {
+    background: var(--info);
+    animation: pulse 1s infinite;
+  }
+  .status-indicator.refreshing {
+    background: var(--warning);
+    animation: pulse 0.7s infinite;
+  }
+  .status-indicator.error {
+    background: var(--accent);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.15); }
+  }
+
+  /* Progress & Metrics */
+  .progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  progress {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: var(--line);
+  }
+  progress::-webkit-progress-bar {
+    background: var(--line);
+  }
+  progress::-webkit-progress-value {
+    background: var(--accent);
+    transition: width 0.15s ease;
+  }
+  progress::-moz-progress-bar {
+    background: var(--accent);
+  }
+
+  /* Terminal Log */
+  pre.terminal {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    color: var(--ink-secondary);
+    height: 120px;
+    overflow-y: auto;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-dialog {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    max-width: 680px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+  .modal-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+  }
+  .modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .modal-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .modal-body th, .modal-body td {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    text-align: left;
+  }
+  .modal-body th {
+    background: var(--surface);
+    font-weight: 600;
+  }
+  .code-block {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    overflow-x: auto;
+    max-height: 260px;
+    white-space: pre;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 8px; }
+    .header-actions span { display: none; }
+  }
 </style>
 </head>
 <body>
-<div class="card">
-  <h1>etag demo</h1>
-  <p class="sub">Send a built-in 200×200 black / white / red pattern to your e-ink tag over Bluetooth.</p>
 
-  <div class="preview"><canvas id="preview" width="200" height="200"></canvas></div>
+<div class="container">
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-badge"></div>
+      <div>
+        <h1>E-Ink Tag Studio <span style="font-size: 11px; font-weight: normal; background: var(--accent-soft); color: var(--accent); padding: 2px 8px; border-radius: 10px;">200×200</span></h1>
+        <p>Waveshare 1.54" Tri-Color (Black / White / Red) &bull; XIAO ESP32-S3 BLE</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="themeToggleBtn" title="Toggle Light/Dark Theme">
+        <span id="themeIcon">🌓</span> <span>Theme</span>
+      </button>
+      <button id="helpModalBtn" title="Wiring Pinouts & ESP32 Firmware">
+        📖 <span>Help &amp; Firmware</span>
+      </button>
+    </div>
+  </header>
 
-  <div class="status">Device: <b id="devName">not connected</b></div>
-
-  <div class="row">
-    <button id="connectBtn">Connect</button>
-    <button id="sendBtn" class="primary" disabled>Upload to display</button>
+  <!-- Web Bluetooth Compatibility Banner (shown on unsupported browsers) -->
+  <div id="compatBanner" class="compat-banner">
+    <svg viewBox="0 0 20 20" fill="currentColor">
+      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+    </svg>
+    <div>
+      <strong>Web Bluetooth is not supported in this browser.</strong><br>
+      To transfer images wirelessly to your XIAO ESP32-S3, please open this page in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> (Desktop or Android).
+      You can still crop, adjust dithering, preview, and download <strong>PNG</strong> or <strong>C Header (.h)</strong> files!
+    </div>
   </div>
 
-  <progress id="bar" value="0" max="100"></progress>
-  <pre id="log"></pre>
+  <!-- =========================================================================
+       WORKSPACE: Picture Window (Left) next to Adjustment Window (Right)
+       ========================================================================= -->
+  <div class="workspace">
+    <!-- LEFT COLUMN: Combined Picture Window with View Toggle -->
+    <div class="card">
+      <div class="card-header">
+        <!-- View Toggle between Source/Crop and E-Ink Preview -->
+        <div class="view-segmented">
+          <button class="view-tab active" id="viewSourceBtn" title="Show original cropped image">🖼️ Source / Crop</button>
+          <button class="view-tab" id="viewSimBtn" title="Show simulated e-ink screen">⚡ E-Ink Preview</button>
+        </div>
+
+        <!-- Scale Buttons -->
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="font-size: 11px; color: var(--muted);">Scale:</span>
+          <button class="btn-icon zoom-preview-btn active" data-zoom="1" title="1x (200px)">1×</button>
+          <button class="btn-icon zoom-preview-btn" data-zoom="1.5" title="1.5x (300px)">1.5×</button>
+          <button class="btn-icon zoom-preview-btn" data-zoom="2" title="2x (400px)">2×</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <!-- Single Combined Viewport -->
+        <div class="stage-viewport">
+          <div class="canvas-stage" id="previewStage">
+            <!-- Source / Crop Canvas Wrap -->
+            <div id="sourceCanvasWrap" style="width: 100%; height: 100%; position: relative;">
+              <canvas id="sourceCanvas" width="200" height="200" title="Click & drag to move image"></canvas>
+              <div id="cropGrid" class="grid-overlay"></div>
+            </div>
+
+            <!-- E-Ink Simulation Canvas Wrap -->
+            <div id="simCanvasWrap" style="width: 100%; height: 100%; position: relative; display: none;">
+              <canvas id="simCanvas" width="200" height="200" title="Waveshare 1.54 Tri-color simulation"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- View 1 Controls: Crop & Transform Toolbar (shown when Source view active) -->
+        <div id="sourceToolbar" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+          <div class="toolbar">
+            <button class="btn-icon" id="rotCcwBtn" title="Rotate CCW (-90°)">↺</button>
+            <button class="btn-icon" id="rotCwBtn" title="Rotate CW (+90°)">↻</button>
+            <button class="btn-icon" id="flipHBtn" title="Flip Horizontal">↔</button>
+            <button class="btn-icon" id="flipVBtn" title="Flip Vertical">↕</button>
+            <button class="btn-icon" id="fitModeBtn" title="Toggle Crop vs Fit Letterbox">Fit</button>
+            <button class="btn-icon" id="centerResetBtn" title="Reset Pan &amp; Zoom">⌂</button>
+            <label style="font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; cursor: pointer;">
+              <input type="checkbox" id="gridToggle"> Grid
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 12px; color: var(--muted);">Crop Zoom:</span>
+            <input type="range" id="cropZoomSlider" min="20" max="400" value="100" style="flex: 1;">
+            <span id="zoomSliderVal" style="font-size: 12px; min-width: 34px; font-variant-numeric: tabular-nums;">100%</span>
+          </div>
+
+          <div style="font-size: 11px; color: var(--muted); text-align: center;">
+            Drag to pan &bull; Scroll to zoom &bull; Pinch on mobile
+          </div>
+        </div>
+
+        <!-- View 2 Controls: Simulation Stats (shown when E-Ink view active) -->
+        <div id="simFooter" style="display: none; flex-direction: column; align-items: center; gap: 8px; width: 100%;">
+          <div class="pixel-stats" id="pixelStats">
+            <span><i class="stat-dot black"></i> Black: <b id="statBlack">0%</b></span>
+            <span><i class="stat-dot red"></i> Red: <b id="statRed">0%</b></span>
+            <span><i class="stat-dot white"></i> White: <b id="statWhite">100%</b></span>
+          </div>
+          <div style="font-size: 11px; color: var(--muted); text-align: center;">
+            200×200 px &bull; 40,000 pixels &bull; 10,000 bytes dual layer payload
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Adjustment Window with Earlier Tab Navigation -->
+    <div class="card">
+      <!-- Tabs Navigation -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-input">1. Input</button>
+        <button class="tab-btn" data-tab="tab-colors">2. Colour &amp; Dither</button>
+        <button class="tab-btn" data-tab="tab-adjust">3. Adjustments</button>
+        <button class="tab-btn" data-tab="tab-ble">4. Bluetooth &amp; Upload</button>
+        <button class="tab-btn" data-tab="tab-export">5. Export</button>
+      </div>
+
+      <!-- Tab 1: Image Input -->
+      <div class="tab-pane active" id="tab-input">
+        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/webp, image/gif, image/bmp" style="display: none;">
+        
+        <div class="dropzone" id="dropZone">
+          <svg style="width: 36px; height: 36px; color: var(--muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          <div class="dropzone-title">Click to upload or drag &amp; drop image</div>
+          <div class="dropzone-sub">Supports PNG, JPG, WebP, GIF, BMP</div>
+        </div>
+
+        <div class="btn-row">
+          <button id="pasteBtn">📋 Paste from Clipboard</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.6; padding: 6px 4px;">
+          • You can also press <strong>Ctrl+V</strong> anywhere to paste an image.<br>
+          • The image is automatically scaled to fit the 200×200 Waveshare e-Paper canvas.<br>
+          • Use the <strong>Source / Crop</strong> view to pan, zoom, flip, and center.
+        </div>
+      </div>
+
+      <!-- Tab 2: Colour & Dither -->
+      <div class="tab-pane" id="tab-colors">
+        <div class="control-group">
+          <div class="section-label">Colour Mode</div>
+          <div class="chip-grid">
+            <button class="chip-btn active" data-mode="bwr_auto">
+              <span>🎨</span> <div><strong>Tri-Colour (Auto)</strong><div style="font-size: 10px; color: var(--muted);">Nearest Black, White, Red</div></div>
+            </button>
+            <button class="chip-btn" data-mode="bw">
+              <span>🖤</span> <div><strong>Black &amp; White</strong><div style="font-size: 10px; color: var(--muted);">Pure B&amp;W (no red)</div></div>
+            </button>
+            <button class="chip-btn" data-mode="red_accent">
+              <span>🌹</span> <div><strong>Red Accent Only</strong><div style="font-size: 10px; color: var(--muted);">B&amp;W with red highlights</div></div>
+            </button>
+            <button class="chip-btn" data-mode="red_mono">
+              <span>🔴</span> <div><strong>Red Monochrome</strong><div style="font-size: 10px; color: var(--muted);">Red ink on white paper</div></div>
+            </button>
+            <button class="chip-btn" data-mode="split_brightness">
+              <span>🌓</span> <div><strong>Brightness Split</strong><div style="font-size: 10px; color: var(--muted);">Dark=Black, Mid=Red, Light=White</div></div>
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group" style="margin-top: 6px;">
+          <div class="section-label">Dithering Algorithm</div>
+          <div class="chip-grid">
+            <button class="chip-btn active" data-dither="atkinson">
+              <span>⚡</span> <div><strong>Atkinson</strong><div style="font-size: 10px; color: var(--muted);">Crisp Mac style (Recommended)</div></div>
+            </button>
+            <button class="chip-btn" data-dither="floyd">
+              <span>🌊</span> <div><strong>Floyd-Steinberg</strong><div style="font-size: 10px; color: var(--muted);">Smooth error diffusion</div></div>
+            </button>
+            <button class="chip-btn" data-dither="bayer">
+              <span>▦</span> <div><strong>Ordered (Bayer)</strong><div style="font-size: 10px; color: var(--muted);">8×8 halftone pattern</div></div>
+            </button>
+            <button class="chip-btn" data-dither="none">
+              <span>⏹️</span> <div><strong>None (Threshold)</strong><div style="font-size: 10px; color: var(--muted);">Hard cutoff</div></div>
+            </button>
+          </div>
+        </div>
+
+        <label class="switch-row" style="margin-top: 6px;">
+          <span><strong>Invert Colours</strong> (swap black and white polarity)</span>
+          <div class="switch">
+            <input type="checkbox" id="invertToggle">
+            <span class="slider-round"></span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Tab 3: Adjustments -->
+      <div class="tab-pane" id="tab-adjust">
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Brightness</span>
+            <span class="control-value" id="brightnessVal">0</span>
+          </div>
+          <input type="range" id="brightnessSlider" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Contrast</span>
+            <span class="control-value" id="contrastVal">0</span>
+          </div>
+          <input type="range" id="contrastSlider" min="-100" max="100" value="0">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Threshold (Cutoff)</span>
+            <span class="control-value" id="thresholdVal">128</span>
+          </div>
+          <input type="range" id="thresholdSlider" min="0" max="255" value="128">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label-row">
+            <span>Red Sensitivity / Accent Coverage</span>
+            <span class="control-value" id="redSensVal">50%</span>
+          </div>
+          <input type="range" id="redSensSlider" min="0" max="100" value="50">
+        </div>
+
+        <div class="control-group" style="margin-top: 4px;">
+          <div class="section-label">Screen Mount Orientation</div>
+          <div class="chip-grid">
+            <button class="chip-btn active" data-mount="0"><span>0°</span> <strong>Normal</strong></button>
+            <button class="chip-btn" data-mount="90"><span>90°</span> <strong>90° CW</strong></button>
+            <button class="chip-btn" data-mount="180"><span>180°</span> <strong>Inverted</strong></button>
+            <button class="chip-btn" data-mount="270"><span>270°</span> <strong>90° CCW</strong></button>
+          </div>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <button id="resetAdjustBtn" style="width: 100%;">↺ Reset Adjustments to Defaults</button>
+        </div>
+      </div>
+
+      <!-- Tab 4: Bluetooth & Upload -->
+      <div class="tab-pane" id="tab-ble">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <div class="section-label" style="margin: 0;">Connection Status</div>
+            <div style="font-size: 13px; font-weight: 600;" id="devName">Not connected</div>
+          </div>
+          <div class="status-pill">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Disconnected</span>
+          </div>
+        </div>
+
+        <!-- Filter Settings -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px;">
+          <select id="bleFilterType" style="flex: 1; min-width: 140px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink);">
+            <option value="service" selected>Filter: Service UUID</option>
+            <option value="name">Filter: Device Name</option>
+            <option value="all">Show All BLE Devices</option>
+          </select>
+          <input type="text" id="bleNamePrefix" value="etag" placeholder="Name prefix" style="flex: 1; min-width: 100px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); display: none;">
+        </div>
+
+        <label class="switch-row">
+          <span>Auto-reconnect if connection drops</span>
+          <div class="switch">
+            <input type="checkbox" id="autoReconnectToggle" checked>
+            <span class="slider-round"></span>
+          </div>
+        </label>
+
+        <!-- BLE Actions -->
+        <div class="btn-row">
+          <button id="connectBtn">🔗 Connect BLE</button>
+          <button id="sendBtn" class="primary" disabled>⚡ Upload to Display</button>
+          <button id="cancelBtn" disabled style="flex: 0.5;">✖ Cancel</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-wrap">
+          <div class="progress-info">
+            <span id="transferMetrics">Ready</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <progress id="bar" value="0" max="100"></progress>
+        </div>
+
+        <!-- Terminal Log -->
+        <div class="control-group">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="section-label" style="margin: 0;">Activity Log</span>
+            <button id="clearLogBtn" style="font-size: 11px; padding: 2px 8px; border: none; background: none; color: var(--muted); cursor: pointer;">Clear</button>
+          </div>
+          <pre id="log" class="terminal"></pre>
+        </div>
+      </div>
+
+      <!-- Tab 5: Export -->
+      <div class="tab-pane" id="tab-export">
+        <div class="section-label">Downloads &amp; Offline Use</div>
+        <p style="margin: 0 0 6px; font-size: 13px; color: var(--muted);">
+          Export your processed 200×200 pixel-accurate e-ink graphics for standalone Arduino code or offline flashing without Bluetooth:
+        </p>
+
+        <div class="btn-row" style="margin-top: 4px;">
+          <button id="dlPngBtn" title="Download 200×200 simulated PNG">🖼️ PNG Image</button>
+          <button id="dlHeaderBtn" title="Download C Header .h for Arduino">💾 C Header (.h)</button>
+          <button id="dlBinBtn" title="Download 10,000-byte raw binary">📦 Raw Binary</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 8px;">
+          • <strong>PNG Image</strong>: 200×200 pixel-accurate simulated tri-color preview.<br>
+          • <strong>C Header (.h)</strong>: <code>epd_image_data.h</code> containing <code>PROGMEM</code> arrays for black and red layers (5000 bytes each).<br>
+          • <strong>Raw Binary (.bin)</strong>: Combined 10,000 bytes binary buffer (black layer + red layer).
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================================
+     HELP & FIRMWARE MODAL
+     ========================================================================= -->
+<div class="modal-backdrop" id="helpModal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <span>📖 Hardware Wiring &amp; ESP32 Firmware Guide</span>
+      <button class="btn-icon" id="closeHelpBtn" style="border: none;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <h4 style="margin: 0 0 8px;">1. Wiring: Waveshare 1.54" Tri-Color to Seeed XIAO ESP32-S3</h4>
+        <p style="margin: 0 0 10px; color: var(--muted);">Connect the SPI pins from the e-Paper panel to your XIAO ESP32-S3:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>E-Paper Pin</th>
+              <th>XIAO Pin</th>
+              <th>ESP32 GPIO</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><b>VCC</b></td><td>3V3</td><td>3.3V</td><td>Power Supply (3.3V)</td></tr>
+            <tr><td><b>GND</b></td><td>GND</td><td>GND</td><td>Ground</td></tr>
+            <tr><td><b>DIN / MOSI</b></td><td>D10</td><td>GPIO 9</td><td>SPI Master-Out-Slave-In</td></tr>
+            <tr><td><b>CLK / SCK</b></td><td>D8</td><td>GPIO 7</td><td>SPI Clock</td></tr>
+            <tr><td><b>CS</b></td><td>D3</td><td>GPIO 4</td><td>SPI Chip Select</td></tr>
+            <tr><td><b>DC</b></td><td>D2</td><td>GPIO 3</td><td>Data / Command</td></tr>
+            <tr><td><b>RST</b></td><td>D1</td><td>GPIO 2</td><td>Display Reset</td></tr>
+            <tr><td><b>BUSY</b></td><td>D0</td><td>GPIO 1</td><td>Busy Status Output</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h4 style="margin: 0 0 8px;">2. Complete ESP32 Arduino Firmware</h4>
+        <p style="margin: 0 0 8px; color: var(--muted);">
+          Flash this Arduino sketch to your XIAO ESP32-S3. It advertises the matching BLE service, verifies the checksum, and refreshes the Waveshare tri-color display.
+        </p>
+        <div class="code-block" id="arduinoCode">#include &lt;BLEDevice.h&gt;
+#include &lt;BLEServer.h&gt;
+#include &lt;BLEUtils.h&gt;
+#include &lt;BLE2902.h&gt;
+#include &lt;GxEPD2_3C.h&gt;
+
+// Matching BLE UUIDs
+#define SERVICE_UUID        "e7a10001-5b3c-4f1e-9a21-7c4d8b2f6a10"
+#define DATA_CHAR_UUID      "e7a10002-5b3c-4f1e-9a21-7c4d8b2f6a10"
+#define STATUS_CHAR_UUID    "e7a10003-5b3c-4f1e-9a21-7c4d8b2f6a10"
+
+// Waveshare 1.54" Tri-Color (200x200) Pins on XIAO ESP32-S3
+// CS=D3(4), DC=D2(3), RST=D1(2), BUSY=D0(1)
+GxEPD2_3C&lt;GxEPD2_154_Z90c, GxEPD2_154_Z90c::HEIGHT&gt; display(
+  GxEPD2_154_Z90c(/*CS=*/ 4, /*DC=*/ 3, /*RST=*/ 2, /*BUSY=*/ 1)
+);
+
+const size_t LAYER_SIZE = 5000;
+const size_t TOTAL_SIZE = 10000;
+uint8_t buffer[TOTAL_SIZE];
+size_t expectedLen = 0;
+uint8_t expectedChecksum = 0;
+
+BLECharacteristic *pStatusChar = nullptr;
+
+void sendStatus(const char* msg) {
+  if (pStatusChar) {
+    pStatusChar-&gt;setValue(msg);
+    pStatusChar-&gt;notify();
+  }
+}
+
+class DataCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pChar) override {
+    uint8_t* data = pChar-&gt;getData();
+    size_t len = pChar-&gt;getLength();
+    if (len &lt; 1) return;
+
+    uint8_t cmd = data[0];
+    if (cmd == 0x01 && len &gt;= 3) { // START
+      expectedLen = data[1] | (data[2] &lt;&lt; 8);
+      memset(buffer, 0, TOTAL_SIZE);
+      sendStatus("READY");
+    }
+    else if (cmd == 0x02 && len &gt; 3) { // DATA CHUNK
+      uint16_t chunkIdx = data[1] | (data[2] &lt;&lt; 8);
+      size_t offset = chunkIdx * 200;
+      size_t payloadLen = len - 3;
+      if (offset + payloadLen &lt;= TOTAL_SIZE) {
+        memcpy(buffer + offset, data + 3, payloadLen);
+      }
+    }
+    else if (cmd == 0x03 && len &gt;= 2) { // END + CHECKSUM
+      expectedChecksum = data[1];
+      uint8_t sum = 0;
+      for (size_t i = 0; i &lt; TOTAL_SIZE; i++) sum = (sum + buffer[i]) & 0xFF;
+
+      if (sum == expectedChecksum) {
+        sendStatus("OK");
+        sendStatus("REFRESHING");
+        // buffer[0..4999] = black layer, buffer[5000..9999] = red layer
+        display.init(115200);
+        display.setFullWindow();
+        display.firstPage();
+        do {
+          display.drawImage(buffer, buffer + LAYER_SIZE, 0, 0, 200, 200, false, false, true);
+        } while (display.nextPage());
+        display.powerOff();
+        sendStatus("DONE");
+      } else {
+        sendStatus("ERR:CHECKSUM");
+      }
+    }
+  }
+};
+
+void setup() {
+  Serial.begin(115200);
+  BLEDevice::init("etag");
+  BLEServer *pServer = BLEDevice::createServer();
+  BLEService *pService = pServer-&gt;createService(SERVICE_UUID);
+
+  BLECharacteristic *pDataChar = pService-&gt;createCharacteristic(
+    DATA_CHAR_UUID,
+    BLECharacteristic::PROPERTY_WRITE
+  );
+  pDataChar-&gt;setCallbacks(new DataCallbacks());
+
+  pStatusChar = pService-&gt;createCharacteristic(
+    STATUS_CHAR_UUID,
+    BLECharacteristic::PROPERTY_NOTIFY
+  );
+  pStatusChar-&gt;addDescriptor(new BLE2902());
+
+  pService-&gt;start();
+  BLEAdvertising *pAdv = BLEDevice::getAdvertising();
+  pAdv-&gt;addServiceUUID(SERVICE_UUID);
+  pAdv-&gt;setScanResponse(true);
+  BLEDevice::startAdvertising();
+}
+
+void loop() {
+  delay(100);
+}</div>
+        <button class="copy-btn" id="copySketchBtn">📋 Copy Arduino Code</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// ---- Must match the Arduino sketch ----
+// =========================================================================
+// E-Ink Tag Studio - WaveShare 1.54" Tri-Color (200x200) Web BLE App
+// =========================================================================
+
+// ---- Must match Arduino sketch ----
 const SERVICE     = 'e7a10001-5b3c-4f1e-9a21-7c4d8b2f6a10';
 const DATA_CHAR   = 'e7a10002-5b3c-4f1e-9a21-7c4d8b2f6a10';
 const STATUS_CHAR = 'e7a10003-5b3c-4f1e-9a21-7c4d8b2f6a10';
 
 const W = 200, H = 200;
-const LAYER = W * H / 8;   // 5000 bytes per colour layer
-const CHUNK = 200;         // payload bytes per BLE write (tune later)
+const LAYER = W * H / 8; // 5000 bytes per layer
+const CHUNK = 200;       // Bytes per BLE packet
+
+// Bayer 8x8 matrix for ordered dithering
+const bayer8 = [
+  [ 0, 32,  8, 40,  2, 34, 10, 42],
+  [48, 16, 56, 24, 50, 18, 58, 26],
+  [12, 44,  4, 36, 14, 46,  6, 38],
+  [60, 28, 52, 20, 62, 30, 54, 22],
+  [ 3, 35, 11, 43,  1, 33,  9, 41],
+  [51, 19, 59, 27, 49, 17, 57, 25],
+  [15, 47,  7, 39, 13, 45,  5, 37],
+  [63, 31, 55, 23, 61, 29, 53, 21]
+];
 
 const $ = id => document.getElementById(id);
-const log = m => { const l = $('log'); l.textContent += m + '\n'; l.scrollTop = l.scrollHeight; };
+const log = m => {
+  const l = $('log');
+  const time = new Date().toLocaleTimeString();
+  l.textContent += `[${time}] ${m}\n`;
+  l.scrollTop = l.scrollHeight;
+};
 
-// ---- Demo pattern: 0 = white, 1 = black, 2 = red ----
-function pixel(x, y) {
-  const dx = x - 100, dy = y - 100;
-  if (Math.hypot(dx, dy) < 18) return 2;                  // red centre dot
-  if (Math.abs(dx - dy) < 2 || Math.abs(dx + dy) < 2) return 1;  // black diagonals
-  const d = Math.max(Math.abs(dx), Math.abs(dy));          // concentric squares
-  const band = Math.floor(d / 10) % 3;
-  return band === 0 ? 1 : band === 1 ? 2 : 0;
-}
+// Application State
+const state = {
+  theme: 'auto',
+  activeView: 'source',        // 'source' or 'sim'
+  colorMode: 'bwr_auto',       // 'bwr_auto', 'bw', 'red_accent', 'red_mono', 'split_brightness'
+  dither: 'atkinson',          // 'atkinson', 'floyd', 'bayer', 'none'
+  brightness: 0,               // -100 to 100
+  contrast: 0,                 // -100 to 100
+  threshold: 128,              // 0 to 255
+  redSens: 50,                 // 0 to 100
+  invert: false,
+  fitMode: 'crop',             // 'crop' (fill) or 'fit' (letterbox)
+  displayMount: 0,             // 0, 90, 180, 270
+  previewZoom: 1,              // 1, 1.5, 2
+  showGrid: false,
+  autoReconnect: true,
+  transform: {
+    zoom: 1.0,
+    panX: 0,
+    panY: 0,
+    rotate: 0,
+    flipH: false,
+    flipV: false
+  }
+};
 
-// ---- Pack into two 1-bit layers (bit 1 = ink, MSB first, row-major) ----
-function buildDemo() {
-  const black = new Uint8Array(LAYER), red = new Uint8Array(LAYER);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const p = pixel(x, y);
-      const i = y * (W / 8) + (x >> 3), m = 0x80 >> (x & 7);
-      if (p === 1) black[i] |= m;
-      else if (p === 2) red[i] |= m;
+let currentLayers = {
+  black: new Uint8Array(LAYER),
+  red: new Uint8Array(LAYER)
+};
+let currentImage = null;
+
+// Canvases
+const srcCanvas = $('sourceCanvas');
+const srcCtx = srcCanvas.getContext('2d');
+const simCanvas = $('simCanvas');
+const simCtx = simCanvas.getContext('2d');
+
+const offCanvas = document.createElement('canvas');
+offCanvas.width = W;
+offCanvas.height = H;
+const offCtx = offCanvas.getContext('2d');
+
+// Initial default geometric calibration pattern
+function createDefaultPattern() {
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let d = 95; d >= 15; d -= 12) {
+    const band = Math.floor(d / 12) % 3;
+    ctx.strokeStyle = (band === 0) ? '#141414' : (band === 1) ? '#d62828' : '#e0e0e0';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(100 - d, 100 - d, d * 2, d * 2);
+  }
+
+  ctx.strokeStyle = '#141414';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(10, 10); ctx.lineTo(190, 190);
+  ctx.moveTo(190, 10); ctx.lineTo(10, 190);
+  ctx.stroke();
+
+  ctx.fillStyle = '#d62828';
+  ctx.beginPath();
+  ctx.arc(100, 100, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(100, 100, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  const idata = ctx.getImageData(160, 10, 30, 30);
+  for (let py = 0; py < 30; py++) {
+    for (let px = 0; px < 30; px++) {
+      const idx = (py * 30 + px) * 4;
+      const cval = ((px + py) % 2 === 0) ? 0 : 255;
+      idata.data[idx] = cval; idata.data[idx+1] = cval; idata.data[idx+2] = cval;
     }
   }
-  return { black, red };
+  ctx.putImageData(idata, 160, 10);
+
+  ctx.fillStyle = '#141414';
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillText('200×200 E-INK', 14, 24);
+
+  return c;
 }
 
-// ---- Preview (decoded from the packed arrays, so it verifies the packing) ----
-function drawPreview({ black, red }) {
-  const ctx = $('preview').getContext('2d');
-  const img = ctx.createImageData(W, H);
+function loadImage(imgOrCanvas) {
+  currentImage = imgOrCanvas;
+  state.transform.panX = 0;
+  state.transform.panY = 0;
+  state.transform.zoom = 1.0;
+  state.transform.rotate = 0;
+  state.transform.flipH = false;
+  state.transform.flipV = false;
+  $('cropZoomSlider').value = 100;
+  $('zoomSliderVal').textContent = '100%';
+  renderPipeline();
+}
+
+// =========================================================================
+// Rendering Pipeline: Transforms, Dithering & Live Simulation
+// =========================================================================
+
+let renderPending = false;
+function requestRender() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => {
+    renderPending = false;
+    renderPipeline();
+  });
+}
+
+function renderPipeline() {
+  if (!currentImage) return;
+
+  // 1. Render to 200x200 offscreen buffer
+  offCtx.save();
+  offCtx.fillStyle = '#ffffff';
+  offCtx.fillRect(0, 0, W, H);
+
+  // Center + Pan in screen coordinates (intuitive, non-inverted dragging)
+  offCtx.translate(100 + state.transform.panX, 100 + state.transform.panY);
+  offCtx.rotate((state.displayMount * Math.PI) / 180);
+  offCtx.rotate((state.transform.rotate * Math.PI) / 180);
+  offCtx.scale(state.transform.flipH ? -1 : 1, state.transform.flipV ? -1 : 1);
+
+  const iw = currentImage.naturalWidth || currentImage.width;
+  const ih = currentImage.naturalHeight || currentImage.height;
+
+  let baseScale = (state.fitMode === 'fit') 
+    ? Math.min(200 / iw, 200 / ih) 
+    : Math.max(200 / iw, 200 / ih);
+
+  const finalScale = baseScale * state.transform.zoom;
+  const dw = iw * finalScale;
+  const dh = ih * finalScale;
+
+  offCtx.drawImage(currentImage, -dw / 2, -dh / 2, dw, dh);
+  offCtx.restore();
+
+  // 2. Draw source editor canvas directly (no clearRect to prevent frame flicker)
+  srcCtx.drawImage(offCanvas, 0, 0);
+
+  // 3. Extract RGB pixels
+  const imgData = offCtx.getImageData(0, 0, W, H);
+  const srcPixels = imgData.data;
+
+  // 4. Pre-process Brightness & Contrast
+  const bOffset = state.brightness * 2.55;
+  const cFactor = state.contrast === 100 ? 50 : (259 * (state.contrast + 255)) / (255 * (259 - state.contrast));
+
+  const rBuf = new Float32Array(W * H);
+  const gBuf = new Float32Array(W * H);
+  const bBuf = new Float32Array(W * H);
+
+  for (let i = 0; i < W * H; i++) {
+    const o = i * 4;
+    let r = srcPixels[o] + bOffset;
+    let g = srcPixels[o + 1] + bOffset;
+    let b = srcPixels[o + 2] + bOffset;
+
+    r = cFactor * (r - 128) + 128;
+    g = cFactor * (g - 128) + 128;
+    b = cFactor * (b - 128) + 128;
+
+    rBuf[i] = r < 0 ? 0 : r > 255 ? 255 : r;
+    gBuf[i] = g < 0 ? 0 : g > 255 ? 255 : g;
+    bBuf[i] = b < 0 ? 0 : b > 255 ? 255 : b;
+  }
+
+  // 5. Quantize & Dither
+  const pixelCodes = new Uint8Array(W * H);
+  quantizeAndDither(rBuf, gBuf, bBuf, pixelCodes);
+
+  // 6. Pack into two 1-bit layers (5000 bytes each)
+  const blackLayer = new Uint8Array(LAYER);
+  const redLayer = new Uint8Array(LAYER);
+
+  let blackCount = 0, redCount = 0, whiteCount = 0;
+
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const i = y * (W / 8) + (x >> 3), m = 0x80 >> (x & 7);
+      const idx = y * W + x;
+      const code = pixelCodes[idx];
+      const byteIdx = y * (W / 8) + (x >> 3);
+      const bitMask = 0x80 >> (x & 7);
+
+      if (code === 1) {
+        blackLayer[byteIdx] |= bitMask;
+        blackCount++;
+      } else if (code === 2) {
+        redLayer[byteIdx] |= bitMask;
+        redCount++;
+      } else {
+        whiteCount++;
+      }
+    }
+  }
+
+  currentLayers = { black: blackLayer, red: redLayer };
+
+  // 7. Render Simulation Canvas directly from packed layers
+  const simData = simCtx.createImageData(W, H);
+  const sd = simData.data;
+
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const byteIdx = y * (W / 8) + (x >> 3);
+      const bitMask = 0x80 >> (x & 7);
       const o = (y * W + x) * 4;
-      let c = [255, 255, 255];
-      if (black[i] & m) c = [20, 20, 20];
-      else if (red[i] & m) c = [214, 40, 40];
-      img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+
+      if (blackLayer[byteIdx] & bitMask) {
+        sd[o] = 20; sd[o + 1] = 20; sd[o + 2] = 20; sd[o + 3] = 255;
+      } else if (redLayer[byteIdx] & bitMask) {
+        sd[o] = 214; sd[o + 1] = 40; sd[o + 2] = 40; sd[o + 3] = 255;
+      } else {
+        sd[o] = 245; sd[o + 1] = 245; sd[o + 2] = 243; sd[o + 3] = 255;
+      }
     }
   }
-  ctx.putImageData(img, 0, 0);
+  simCtx.putImageData(simData, 0, 0);
+
+  // 8. Update Pixel Stats
+  const total = W * H;
+  $('statBlack').textContent = `${((blackCount / total) * 100).toFixed(1)}%`;
+  $('statRed').textContent = `${((redCount / total) * 100).toFixed(1)}%`;
+  $('statWhite').textContent = `${((whiteCount / total) * 100).toFixed(1)}%`;
 }
 
-const demo = buildDemo();
-drawPreview(demo);
+// Inlined, high-performance error diffusion helpers
+function diffuseAtk1(buf, x, y, err) {
+  const q = err * 0.125;
+  const y1 = y + 1, y2 = y + 2;
+  const r0 = y * W, r1 = y1 * W, r2 = y2 * W;
 
-// ---- BLE ----
-let device, dataChar, statusChar, waiter = null;
+  if (x + 1 < W) buf[r0 + x + 1] += q;
+  if (x + 2 < W) buf[r0 + x + 2] += q;
+  if (y1 < H) {
+    if (x - 1 >= 0) buf[r1 + x - 1] += q;
+    buf[r1 + x] += q;
+    if (x + 1 < W) buf[r1 + x + 1] += q;
+  }
+  if (y2 < H) buf[r2 + x] += q;
+}
+
+function diffuseAtk3(rBuf, gBuf, bBuf, x, y, er, eg, eb) {
+  const qr = er * 0.125, qg = eg * 0.125, qb = eb * 0.125;
+  const y1 = y + 1, y2 = y + 2;
+  const r0 = y * W, r1 = y1 * W, r2 = y2 * W;
+
+  if (x + 1 < W) {
+    const i = r0 + x + 1;
+    rBuf[i] += qr; gBuf[i] += qg; bBuf[i] += qb;
+  }
+  if (x + 2 < W) {
+    const i = r0 + x + 2;
+    rBuf[i] += qr; gBuf[i] += qg; bBuf[i] += qb;
+  }
+  if (y1 < H) {
+    if (x - 1 >= 0) {
+      const i = r1 + x - 1;
+      rBuf[i] += qr; gBuf[i] += qg; bBuf[i] += qb;
+    }
+    const i0 = r1 + x;
+    rBuf[i0] += qr; gBuf[i0] += qg; bBuf[i0] += qb;
+    if (x + 1 < W) {
+      const i = r1 + x + 1;
+      rBuf[i] += qr; gBuf[i] += qg; bBuf[i] += qb;
+    }
+  }
+  if (y2 < H) {
+    const i = r2 + x;
+    rBuf[i] += qr; gBuf[i] += qg; bBuf[i] += qb;
+  }
+}
+
+function diffuseFloyd1(buf, x, y, err) {
+  const y1 = y + 1;
+  const r0 = y * W, r1 = y1 * W;
+  if (x + 1 < W) buf[r0 + x + 1] += err * (7 / 16);
+  if (y1 < H) {
+    if (x - 1 >= 0) buf[r1 + x - 1] += err * (3 / 16);
+    buf[r1 + x] += err * (5 / 16);
+    if (x + 1 < W) buf[r1 + x + 1] += err * (1 / 16);
+  }
+}
+
+function diffuseFloyd3(rBuf, gBuf, bBuf, x, y, er, eg, eb) {
+  const y1 = y + 1;
+  const r0 = y * W, r1 = y1 * W;
+  if (x + 1 < W) {
+    const i = r0 + x + 1;
+    rBuf[i] += er * (7 / 16); gBuf[i] += eg * (7 / 16); bBuf[i] += eb * (7 / 16);
+  }
+  if (y1 < H) {
+    if (x - 1 >= 0) {
+      const i = r1 + x - 1;
+      rBuf[i] += er * (3 / 16); gBuf[i] += eg * (3 / 16); bBuf[i] += eb * (3 / 16);
+    }
+    const i0 = r1 + x;
+    rBuf[i0] += er * (5 / 16); gBuf[i0] += eg * (5 / 16); bBuf[i0] += eb * (5 / 16);
+    if (x + 1 < W) {
+      const i = r1 + x + 1;
+      rBuf[i] += er * (1 / 16); gBuf[i] += eg * (1 / 16); bBuf[i] += eb * (1 / 16);
+    }
+  }
+}
+
+function quantizeAndDither(rBuf, gBuf, bBuf, outCodes) {
+  const mode = state.colorMode;
+  const dither = state.dither;
+  const thresh = state.threshold;
+  const redSens = state.redSens;
+  const invert = state.invert;
+
+  if (mode === 'bw') {
+    const lumBuf = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      lumBuf[i] = 0.299 * rBuf[i] + 0.587 * gBuf[i] + 0.114 * bBuf[i];
+    }
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        let lum = lumBuf[idx];
+
+        if (dither === 'bayer') {
+          lum += (bayer8[y % 8][x % 8] / 64 - 0.5) * 128;
+        }
+
+        let isBlack = lum < thresh;
+        const targetLum = isBlack ? 0 : 255;
+        const err = lum - targetLum;
+
+        if (invert) isBlack = !isBlack;
+        outCodes[idx] = isBlack ? 1 : 0;
+
+        if (dither === 'atkinson') diffuseAtk1(lumBuf, x, y, err);
+        else if (dither === 'floyd') diffuseFloyd1(lumBuf, x, y, err);
+      }
+    }
+  }
+  else if (mode === 'bwr_auto') {
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        let r = Math.min(255, Math.max(0, rBuf[idx]));
+        let g = Math.min(255, Math.max(0, gBuf[idx]));
+        let b = Math.min(255, Math.max(0, bBuf[idx]));
+
+        if (dither === 'bayer') {
+          const bVal = (bayer8[y % 8][x % 8] / 64 - 0.5) * 96;
+          r = Math.min(255, Math.max(0, r + bVal));
+          g = Math.min(255, Math.max(0, g + bVal));
+          b = Math.min(255, Math.max(0, b + bVal));
+        }
+
+        const dW = (r - 255)**2 + (g - 255)**2 + (b - 255)**2;
+        const dB = (r - 20)**2 + (g - 20)**2 + (b - 20)**2;
+
+        let redWeight = Math.pow(0.5, (redSens - 50) / 30);
+        const redDom = r - Math.max(g, b);
+        if (redDom > 12) {
+          redWeight *= Math.max(0.15, 1.0 - (redDom / 100));
+        }
+
+        const dR = ((r - 214)**2 + (g - 40)**2 + (b - 40)**2) * redWeight;
+
+        let code = 0, tr = 255, tg = 255, tb = 255;
+        if (dB < dW && dB < dR) {
+          code = invert ? 0 : 1;
+          tr = 20; tg = 20; tb = 20;
+        } else if (dR < dW && dR < dB) {
+          code = 2;
+          tr = 214; tg = 40; tb = 40;
+        } else {
+          code = invert ? 1 : 0;
+        }
+        outCodes[idx] = code;
+
+        if (dither === 'atkinson') {
+          diffuseAtk3(rBuf, gBuf, bBuf, x, y, r - tr, g - tg, b - tb);
+        } else if (dither === 'floyd') {
+          diffuseFloyd3(rBuf, gBuf, bBuf, x, y, r - tr, g - tg, b - tb);
+        }
+      }
+    }
+  }
+  else if (mode === 'red_accent') {
+    const lumBuf = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      lumBuf[i] = 0.299 * rBuf[i] + 0.587 * gBuf[i] + 0.114 * bBuf[i];
+    }
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const r = rBuf[idx], g = gBuf[idx], b = bBuf[idx];
+        const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+        const sat = maxC > 0 ? (maxC - minC) / maxC : 0;
+        const redDom = r - Math.max(g, b);
+
+        const redDomReq = 65 - (redSens * 0.55);
+        const satReq = 0.38 - (redSens * 0.003);
+        const isRed = (r > 60 && redDom > redDomReq && sat > satReq);
+
+        if (isRed) {
+          outCodes[idx] = 2;
+        } else {
+          let lum = lumBuf[idx];
+          if (dither === 'bayer') lum += (bayer8[y % 8][x % 8] / 64 - 0.5) * 128;
+          let isBlack = lum < thresh;
+          const target = isBlack ? 0 : 255;
+          const err = lum - target;
+
+          if (invert) isBlack = !isBlack;
+          outCodes[idx] = isBlack ? 1 : 0;
+
+          if (dither === 'atkinson') diffuseAtk1(lumBuf, x, y, err);
+          else if (dither === 'floyd') diffuseFloyd1(lumBuf, x, y, err);
+        }
+      }
+    }
+  }
+  else if (mode === 'red_mono') {
+    const lumBuf = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      lumBuf[i] = 0.299 * rBuf[i] + 0.587 * gBuf[i] + 0.114 * bBuf[i];
+    }
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        let lum = lumBuf[idx];
+
+        if (dither === 'bayer') lum += (bayer8[y % 8][x % 8] / 64 - 0.5) * 128;
+
+        let isRed = lum < thresh;
+        const target = isRed ? 0 : 255;
+        const err = lum - target;
+
+        if (invert) isRed = !isRed;
+        outCodes[idx] = isRed ? 2 : 0;
+
+        if (dither === 'atkinson') diffuseAtk1(lumBuf, x, y, err);
+        else if (dither === 'floyd') diffuseFloyd1(lumBuf, x, y, err);
+      }
+    }
+  }
+  else if (mode === 'split_brightness') {
+    const t1 = thresh * 0.75;
+    const t2 = thresh + (255 - thresh) * (1.0 - (redSens / 100) * 0.65);
+
+    const lumBuf = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      lumBuf[i] = 0.299 * rBuf[i] + 0.587 * gBuf[i] + 0.114 * bBuf[i];
+    }
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        let lum = lumBuf[idx];
+
+        if (dither === 'bayer') lum += (bayer8[y % 8][x % 8] / 64 - 0.5) * 80;
+
+        let code = 0, target = 255;
+        if (lum < t1) {
+          code = invert ? 0 : 1;
+          target = 0;
+        } else if (lum < t2) {
+          code = 2;
+          target = (t1 + t2) / 2;
+        } else {
+          code = invert ? 1 : 0;
+          target = 255;
+        }
+        outCodes[idx] = code;
+
+        const err = lum - target;
+        if (dither === 'atkinson') diffuseAtk1(lumBuf, x, y, err);
+        else if (dither === 'floyd') diffuseFloyd1(lumBuf, x, y, err);
+      }
+    }
+  }
+}
+
+// =========================================================================
+// Smooth Mouse & Touch Controls (Attached to both canvases)
+// =========================================================================
+
+let isDragging = false;
+let startPointerX = 0, startPointerY = 0;
+let initialPinchDist = 0, initialZoom = 1;
+
+function attachCanvasPointerEvents(cvs) {
+  cvs.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    isDragging = true;
+    startPointerX = e.clientX;
+    startPointerY = e.clientY;
+    try { cvs.setPointerCapture(e.pointerId); } catch(err) {}
+  });
+
+  cvs.addEventListener('pointermove', e => {
+    if (!isDragging) return;
+    const rect = cvs.getBoundingClientRect();
+    const scale = 200 / (rect.width || 200);
+    const dx = (e.clientX - startPointerX) * scale;
+    const dy = (e.clientY - startPointerY) * scale;
+    startPointerX = e.clientX;
+    startPointerY = e.clientY;
+
+    state.transform.panX += dx;
+    state.transform.panY += dy;
+    requestRender();
+  });
+
+  const stopDrag = e => {
+    if (isDragging) {
+      isDragging = false;
+      try {
+        if (e && e.pointerId && cvs.hasPointerCapture(e.pointerId)) {
+          cvs.releasePointerCapture(e.pointerId);
+        }
+      } catch(err) {}
+    }
+  };
+
+  cvs.addEventListener('pointerup', stopDrag);
+  cvs.addEventListener('pointercancel', stopDrag);
+  cvs.addEventListener('lostpointercapture', stopDrag);
+
+  // Wheel zoom
+  cvs.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.08 : 0.92;
+    state.transform.zoom = Math.min(10.0, Math.max(0.1, state.transform.zoom * factor));
+    const zPct = Math.round(state.transform.zoom * 100);
+    $('cropZoomSlider').value = zPct;
+    $('zoomSliderVal').textContent = `${zPct}%`;
+    requestRender();
+  }, { passive: false });
+
+  // Mobile Touch Pinch-to-zoom
+  cvs.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      isDragging = false;
+      initialPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialZoom = state.transform.zoom;
+    }
+  }, { passive: true });
+
+  cvs.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && initialPinchDist > 0) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = dist / initialPinchDist;
+      state.transform.zoom = Math.min(10.0, Math.max(0.1, initialZoom * scale));
+      const zPct = Math.round(state.transform.zoom * 100);
+      $('cropZoomSlider').value = zPct;
+      $('zoomSliderVal').textContent = `${zPct}%`;
+      requestRender();
+    }
+  }, { passive: true });
+}
+
+attachCanvasPointerEvents(srcCanvas);
+attachCanvasPointerEvents(simCanvas);
+
+// View Shift Toggle (Source vs Simulation)
+function setPictureView(view) {
+  state.activeView = view;
+  if (view === 'source') {
+    $('viewSourceBtn').classList.add('active');
+    $('viewSimBtn').classList.remove('active');
+    $('sourceCanvasWrap').style.display = 'block';
+    $('simCanvasWrap').style.display = 'none';
+    $('sourceToolbar').style.display = 'flex';
+    $('simFooter').style.display = 'none';
+  } else {
+    $('viewSimBtn').classList.add('active');
+    $('viewSourceBtn').classList.remove('active');
+    $('sourceCanvasWrap').style.display = 'none';
+    $('simCanvasWrap').style.display = 'block';
+    $('sourceToolbar').style.display = 'none';
+    $('simFooter').style.display = 'flex';
+  }
+}
+
+$('viewSourceBtn').onclick = () => setPictureView('source');
+$('viewSimBtn').onclick = () => setPictureView('sim');
+
+// Toolbar buttons
+$('rotCcwBtn').onclick = () => {
+  state.transform.rotate = (state.transform.rotate - 90 + 360) % 360;
+  requestRender();
+};
+$('rotCwBtn').onclick = () => {
+  state.transform.rotate = (state.transform.rotate + 90) % 360;
+  requestRender();
+};
+$('flipHBtn').onclick = () => {
+  state.transform.flipH = !state.transform.flipH;
+  $('flipHBtn').classList.toggle('active', state.transform.flipH);
+  requestRender();
+};
+$('flipVBtn').onclick = () => {
+  state.transform.flipV = !state.transform.flipV;
+  $('flipVBtn').classList.toggle('active', state.transform.flipV);
+  requestRender();
+};
+$('fitModeBtn').onclick = () => {
+  state.fitMode = (state.fitMode === 'crop') ? 'fit' : 'crop';
+  $('fitModeBtn').textContent = state.fitMode === 'crop' ? 'Crop' : 'Fit';
+  $('fitModeBtn').classList.toggle('active', state.fitMode === 'fit');
+  requestRender();
+};
+$('centerResetBtn').onclick = () => {
+  state.transform.panX = 0;
+  state.transform.panY = 0;
+  state.transform.zoom = 1.0;
+  state.transform.rotate = 0;
+  state.transform.flipH = false;
+  state.transform.flipV = false;
+  $('flipHBtn').classList.remove('active');
+  $('flipVBtn').classList.remove('active');
+  $('cropZoomSlider').value = 100;
+  $('zoomSliderVal').textContent = '100%';
+  requestRender();
+};
+
+$('cropZoomSlider').oninput = e => {
+  const z = parseInt(e.target.value, 10);
+  state.transform.zoom = z / 100;
+  $('zoomSliderVal').textContent = `${z}%`;
+  requestRender();
+};
+
+// Preview Zoom Scale Selector (1x, 1.5x, 2x)
+document.querySelectorAll('.zoom-preview-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.zoom-preview-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const z = parseFloat(btn.dataset.zoom);
+    state.previewZoom = z;
+    const px = Math.round(200 * z);
+    $('previewStage').style.width = `${px}px`;
+    $('previewStage').style.height = `${px}px`;
+  };
+});
+
+// Grid toggle
+$('gridToggle').onchange = e => {
+  state.showGrid = e.target.checked;
+  $('cropGrid').classList.toggle('active', state.showGrid);
+};
+
+// Tabs navigation (earlier style)
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.tab).classList.add('active');
+  };
+});
+
+// =========================================================================
+// Image Input & Paste Handlers
+// =========================================================================
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => loadImage(img);
+    img.src = ev.target.result;
+    log(`Loaded image: ${file.name} (${img.width}×${img.height})`);
+  };
+  reader.readAsDataURL(file);
+}
+
+const dropZone = $('dropZone');
+dropZone.onclick = () => $('fileInput').click();
+$('fileInput').onchange = e => {
+  if (e.target.files.length) loadFile(e.target.files[0]);
+};
+
+dropZone.ondragover = e => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+};
+dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+dropZone.ondrop = e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+};
+
+// Global paste handler
+window.addEventListener('paste', e => {
+  const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+  for (let item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      const file = item.getAsFile();
+      loadFile(file);
+      log('Image pasted from clipboard');
+      break;
+    }
+  }
+});
+
+$('pasteBtn').onclick = async () => {
+  try {
+    const clipItems = await navigator.clipboard.read();
+    for (const item of clipItems) {
+      const imageType = item.types.find(t => t.startsWith('image/'));
+      if (imageType) {
+        const blob = await item.getType(imageType);
+        loadFile(blob);
+        log('Image pasted from clipboard API');
+        return;
+      }
+    }
+    log('No image found on clipboard.');
+  } catch (err) {
+    log('Clipboard read failed: ' + err.message + ' (Try pressing Ctrl+V)');
+  }
+};
+
+// =========================================================================
+// Controls, Modes, Adjustments
+// =========================================================================
+
+// Color Modes
+document.querySelectorAll('[data-mode]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.colorMode = btn.dataset.mode;
+    saveSettings();
+    requestRender();
+  };
+});
+
+// Dither choices
+document.querySelectorAll('[data-dither]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('[data-dither]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.dither = btn.dataset.dither;
+    saveSettings();
+    requestRender();
+  };
+});
+
+// Screen mount orientation
+document.querySelectorAll('[data-mount]').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('[data-mount]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.displayMount = parseInt(btn.dataset.mount, 10);
+    saveSettings();
+    requestRender();
+  };
+});
+
+// Invert toggle
+$('invertToggle').onchange = e => {
+  state.invert = e.target.checked;
+  saveSettings();
+  requestRender();
+};
+
+// Adjustments Sliders
+$('brightnessSlider').oninput = e => {
+  state.brightness = parseInt(e.target.value, 10);
+  $('brightnessVal').textContent = state.brightness;
+  saveSettings();
+  requestRender();
+};
+$('contrastSlider').oninput = e => {
+  state.contrast = parseInt(e.target.value, 10);
+  $('contrastVal').textContent = state.contrast;
+  saveSettings();
+  requestRender();
+};
+$('thresholdSlider').oninput = e => {
+  state.threshold = parseInt(e.target.value, 10);
+  $('thresholdVal').textContent = state.threshold;
+  saveSettings();
+  requestRender();
+};
+$('redSensSlider').oninput = e => {
+  state.redSens = parseInt(e.target.value, 10);
+  $('redSensVal').textContent = `${state.redSens}%`;
+  saveSettings();
+  requestRender();
+};
+
+$('resetAdjustBtn').onclick = () => {
+  state.brightness = 0; $('brightnessSlider').value = 0; $('brightnessVal').textContent = '0';
+  state.contrast = 0;   $('contrastSlider').value = 0;   $('contrastVal').textContent = '0';
+  state.threshold = 128; $('thresholdSlider').value = 128; $('thresholdVal').textContent = '128';
+  state.redSens = 50;   $('redSensSlider').value = 50;   $('redSensVal').textContent = '50%';
+  state.invert = false; $('invertToggle').checked = false;
+  state.displayMount = 0;
+  document.querySelectorAll('[data-mount]').forEach(b => b.classList.toggle('active', b.dataset.mount === '0'));
+  saveSettings();
+  requestRender();
+};
+
+// Filter input toggle
+$('bleFilterType').onchange = e => {
+  $('bleNamePrefix').style.display = (e.target.value === 'name') ? 'block' : 'none';
+};
+
+// =========================================================================
+// Bluetooth BLE Connection & Transfer
+// =========================================================================
+
+let device = null, dataChar = null, statusChar = null, waiter = null;
+let isTransferring = false, cancelRequested = false;
+let reconnectAttempts = 0, manualDisconnect = false;
+
+function updateConnectionUI(status, label) {
+  const ind = $('statusIndicator');
+  const txt = $('statusText');
+  ind.className = 'status-indicator ' + status;
+  txt.textContent = label || status.charAt(0).toUpperCase() + status.slice(1);
+
+  const isConn = device && device.gatt && device.gatt.connected;
+  $('devName').textContent = isConn ? (device.name || 'etag') : 'Not connected';
+  $('connectBtn').textContent = isConn ? 'Disconnect' : '🔗 Connect BLE';
+  $('sendBtn').disabled = !isConn || isTransferring;
+}
 
 function onStatus(e) {
   const t = new TextDecoder().decode(e.target.value);
   log('ESP: ' + t);
+  if (t === 'REFRESHING') {
+    updateConnectionUI('refreshing', 'Refreshing Screen');
+  }
   if (!waiter) return;
   if (t.startsWith('ERR')) waiter.rej(new Error(t));
   else if (t === waiter.want) waiter.res(t);
@@ -124,73 +2107,349 @@ function waitFor(want, ms = 30000) {
 }
 
 async function connect() {
-  if (!navigator.bluetooth) { log('Web Bluetooth not supported. Use Chrome or Edge.'); return; }
+  if (device && device.gatt && device.gatt.connected) {
+    manualDisconnect = true;
+    device.gatt.disconnect();
+    return;
+  }
+
+  if (!navigator.bluetooth) {
+    log('Web Bluetooth is not available in this browser. Please use Chrome or Edge.');
+    return;
+  }
+
+  manualDisconnect = false;
+  updateConnectionUI('connecting', 'Pairing...');
+  log('Opening Bluetooth device picker...');
+
   try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [SERVICE] }],   // only etag devices show up
-      optionalServices: [SERVICE]
-    });
-    device.addEventListener('gattserverdisconnected', () => {
-      $('devName').textContent = 'not connected';
-      $('sendBtn').disabled = true;
-      log('Disconnected');
-    });
-    const server = await device.gatt.connect();
-    const svc = await server.getPrimaryService(SERVICE);
-    dataChar = await svc.getCharacteristic(DATA_CHAR);
-    statusChar = await svc.getCharacteristic(STATUS_CHAR);
-    await statusChar.startNotifications();
-    statusChar.addEventListener('characteristicvaluechanged', onStatus);
-    $('devName').textContent = device.name || 'etag';
-    $('sendBtn').disabled = false;
-    log('Connected to ' + (device.name || 'etag'));
+    const filterType = $('bleFilterType').value;
+    let reqOptions = {};
+
+    if (filterType === 'service') {
+      reqOptions = {
+        filters: [{ services: [SERVICE] }],
+        optionalServices: [SERVICE]
+      };
+    } else if (filterType === 'name') {
+      const prefix = $('bleNamePrefix').value.trim() || 'etag';
+      reqOptions = {
+        filters: [{ namePrefix: prefix }],
+        optionalServices: [SERVICE]
+      };
+    } else {
+      reqOptions = {
+        acceptAllDevices: true,
+        optionalServices: [SERVICE]
+      };
+    }
+
+    device = await navigator.bluetooth.requestDevice(reqOptions);
+    device.addEventListener('gattserverdisconnected', handleDisconnect);
+
+    await connectGatt(device);
   } catch (err) {
+    updateConnectionUI('error', 'Failed');
     log('Connect failed: ' + err.message);
   }
 }
 
-async function upload() {
-  $('sendBtn').disabled = true;
-  $('bar').value = 0;
-  try {
-    const payload = new Uint8Array(LAYER * 2);
-    payload.set(demo.black, 0);
-    payload.set(demo.red, LAYER);
-    let sum = 0;
-    for (const b of payload) sum = (sum + b) & 0xFF;
+async function connectGatt(dev) {
+  log('Connecting to GATT server on ' + (dev.name || 'device') + '...');
+  const server = await dev.gatt.connect();
+  const svc = await server.getPrimaryService(SERVICE);
+  dataChar = await svc.getCharacteristic(DATA_CHAR);
+  statusChar = await svc.getCharacteristic(STATUS_CHAR);
 
-    // START
-    let p = waitFor('READY');
+  await statusChar.startNotifications();
+  statusChar.addEventListener('characteristicvaluechanged', onStatus);
+
+  updateConnectionUI('connected');
+  reconnectAttempts = 0;
+  log('Connected successfully to ' + (dev.name || 'etag') + '!');
+}
+
+function handleDisconnect() {
+  updateConnectionUI('disconnected');
+  log('Device disconnected.');
+
+  if (!manualDisconnect && $('autoReconnectToggle').checked && device && reconnectAttempts < 3) {
+    reconnectAttempts++;
+    log(`Auto-reconnecting attempt ${reconnectAttempts}/3 in 2s...`);
+    setTimeout(async () => {
+      try {
+        await connectGatt(device);
+      } catch (e) {
+        log('Auto-reconnect failed: ' + e.message);
+      }
+    }, 2000);
+  }
+}
+
+// Upload image to E-Ink display
+async function upload() {
+  if (!device || !device.gatt.connected || !dataChar) {
+    log('Error: Not connected to an e-ink display.');
+    return;
+  }
+
+  isTransferring = true;
+  cancelRequested = false;
+  $('sendBtn').disabled = true;
+  $('cancelBtn').disabled = false;
+  $('bar').value = 0;
+  $('progressPercent').textContent = '0%';
+  $('transferMetrics').textContent = 'Starting transfer...';
+  updateConnectionUI('transferring', 'Transferring');
+
+  const startTime = Date.now();
+  const payload = new Uint8Array(LAYER * 2);
+  payload.set(currentLayers.black, 0);
+  payload.set(currentLayers.red, LAYER);
+
+  let sum = 0;
+  for (const b of payload) sum = (sum + b) & 0xFF;
+
+  try {
+    log(`Starting transfer: 10,000 bytes across 2 layers...`);
+    let p = waitFor('READY', 10000);
     await dataChar.writeValueWithResponse(new Uint8Array([0x01, payload.length & 255, payload.length >> 8]));
     await p;
 
-    // DATA chunks
-    const total = Math.ceil(payload.length / CHUNK);
-    for (let i = 0; i < total; i++) {
+    const totalChunks = Math.ceil(payload.length / CHUNK);
+    for (let i = 0; i < totalChunks; i++) {
+      if (cancelRequested) {
+        throw new Error('Transfer aborted by user');
+      }
+
       const part = payload.subarray(i * CHUNK, (i + 1) * CHUNK);
       const pkt = new Uint8Array(3 + part.length);
-      pkt[0] = 0x02; pkt[1] = i & 255; pkt[2] = i >> 8;
+      pkt[0] = 0x02;
+      pkt[1] = i & 255;
+      pkt[2] = i >> 8;
       pkt.set(part, 3);
+
       await dataChar.writeValueWithResponse(pkt);
-      $('bar').value = ((i + 1) / total) * 100;
+
+      const sentBytes = Math.min((i + 1) * CHUNK, payload.length);
+      const pct = Math.round((sentBytes / payload.length) * 100);
+      $('bar').value = pct;
+      $('progressPercent').textContent = `${pct}%`;
+
+      const elapsedSec = (Date.now() - startTime) / 1000;
+      const speed = elapsedSec > 0 ? (sentBytes / 1024) / elapsedSec : 0;
+      const remainingBytes = payload.length - sentBytes;
+      const etaSec = speed > 0 ? Math.ceil((remainingBytes / 1024) / speed) : 0;
+
+      $('transferMetrics').textContent = `Chunk ${i + 1}/${totalChunks} • ${speed.toFixed(1)} KB/s • ~${etaSec}s left`;
     }
 
-    // END + checksum
-    p = waitFor('OK');
+    log(`All chunks sent. Verifying checksum (0x${sum.toString(16).padStart(2,'0').toUpperCase()})...`);
+    p = waitFor('OK', 15000);
     await dataChar.writeValueWithResponse(new Uint8Array([0x03, sum]));
     await p;
 
-    log('Transfer verified. Display refreshing (~15 s)...');
-    await waitFor('DONE', 60000);
-    log('Done!');
+    log('Checksum verified! Display is now refreshing (~15-20s)...');
+    updateConnectionUI('refreshing', 'Refreshing Screen');
+    $('transferMetrics').textContent = 'Display refreshing (~15-20s)...';
+
+    await waitFor('DONE', 90000);
+    log('Display update complete!');
+    $('transferMetrics').textContent = 'Complete! 100%';
   } catch (err) {
-    log('Upload failed: ' + err.message);
+    log('Transfer failed: ' + err.message);
+    $('transferMetrics').textContent = 'Failed: ' + err.message;
+  } finally {
+    isTransferring = false;
+    $('cancelBtn').disabled = true;
+    updateConnectionUI(device && device.gatt && device.gatt.connected ? 'connected' : 'disconnected');
   }
-  $('sendBtn').disabled = !(device && device.gatt.connected);
 }
+
+$('cancelBtn').onclick = () => {
+  if (isTransferring) {
+    cancelRequested = true;
+    log('Cancelling transfer...');
+  }
+};
 
 $('connectBtn').onclick = connect;
 $('sendBtn').onclick = upload;
+$('clearLogBtn').onclick = () => { $('log').textContent = ''; };
+
+// =========================================================================
+// Downloads & Exports
+// =========================================================================
+
+$('dlPngBtn').onclick = () => {
+  const link = document.createElement('a');
+  link.download = 'etag_200x200.png';
+  link.href = simCanvas.toDataURL('image/png');
+  link.click();
+  log('Downloaded 200×200 simulation PNG');
+};
+
+$('dlHeaderBtn').onclick = () => {
+  let hCode = `// =========================================================================\n`;
+  hCode += `// Generated by E-Ink Tag Studio\n`;
+  hCode += `// Waveshare 1.54" Tri-Color (B/W/R) e-Paper (200 x 200 pixels)\n`;
+  hCode += `// Black layer: 5000 bytes (1 = black ink, 0 = white)\n`;
+  hCode += `// Red layer:   5000 bytes (1 = red ink,   0 = white)\n`;
+  hCode += `// =========================================================================\n\n`;
+  hCode += `#ifndef EPD_IMAGE_DATA_H\n#define EPD_IMAGE_DATA_H\n\n`;
+  hCode += `#include <Arduino.h>\n\n`;
+  hCode += `const unsigned int epd_width = 200;\n`;
+  hCode += `const unsigned int epd_height = 200;\n`;
+  hCode += `const unsigned int epd_buffer_size = 5000;\n\n`;
+
+  hCode += `const unsigned char epd_bitmap_black[5000] PROGMEM = {\n  `;
+  for (let i = 0; i < LAYER; i++) {
+    hCode += '0x' + currentLayers.black[i].toString(16).padStart(2, '0').toUpperCase();
+    if (i < LAYER - 1) hCode += ', ';
+    if ((i + 1) % 16 === 0 && i < LAYER - 1) hCode += '\n  ';
+  }
+  hCode += '\n};\n\n';
+
+  hCode += `const unsigned char epd_bitmap_red[5000] PROGMEM = {\n  `;
+  for (let i = 0; i < LAYER; i++) {
+    hCode += '0x' + currentLayers.red[i].toString(16).padStart(2, '0').toUpperCase();
+    if (i < LAYER - 1) hCode += ', ';
+    if ((i + 1) % 16 === 0 && i < LAYER - 1) hCode += '\n  ';
+  }
+  hCode += '\n};\n\n';
+  hCode += `#endif // EPD_IMAGE_DATA_H\n`;
+
+  const blob = new Blob([hCode], { type: 'text/x-csrc' });
+  const link = document.createElement('a');
+  link.download = 'epd_image_data.h';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  log('Downloaded C Header file (epd_image_data.h)');
+};
+
+$('dlBinBtn').onclick = () => {
+  const payload = new Uint8Array(LAYER * 2);
+  payload.set(currentLayers.black, 0);
+  payload.set(currentLayers.red, LAYER);
+  const blob = new Blob([payload], { type: 'application/octet-stream' });
+  const link = document.createElement('a');
+  link.download = 'epd_layers.bin';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  log('Downloaded 10,000-byte raw binary payload');
+};
+
+// =========================================================================
+// Theme, Help Modal & Settings Persistence
+// =========================================================================
+
+function applyTheme(t) {
+  state.theme = t;
+  if (t === 'dark' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+    $('themeIcon').textContent = '🌙';
+  } else {
+    document.documentElement.classList.remove('dark');
+    $('themeIcon').textContent = '☀️';
+  }
+}
+
+$('themeToggleBtn').onclick = () => {
+  const isDark = document.documentElement.classList.contains('dark');
+  applyTheme(isDark ? 'light' : 'dark');
+  saveSettings();
+};
+
+const helpModal = $('helpModal');
+$('helpModalBtn').onclick = () => helpModal.classList.add('open');
+$('closeHelpBtn').onclick = () => helpModal.classList.remove('open');
+helpModal.onclick = e => { if (e.target === helpModal) helpModal.classList.remove('open'); };
+
+$('copySketchBtn').onclick = () => {
+  const code = $('arduinoCode').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    $('copySketchBtn').textContent = '✓ Copied!';
+    setTimeout(() => { $('copySketchBtn').textContent = '📋 Copy Arduino Code'; }, 2000);
+  });
+};
+
+function saveSettings() {
+  const saved = {
+    theme: state.theme,
+    colorMode: state.colorMode,
+    dither: state.dither,
+    brightness: state.brightness,
+    contrast: state.contrast,
+    threshold: state.threshold,
+    redSens: state.redSens,
+    invert: state.invert,
+    displayMount: state.displayMount,
+    autoReconnect: $('autoReconnectToggle').checked
+  };
+  try {
+    localStorage.setItem('etag_studio_settings', JSON.stringify(saved));
+  } catch(e) {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('etag_studio_settings');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.theme) applyTheme(s.theme);
+    if (s.colorMode) {
+      state.colorMode = s.colorMode;
+      document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === s.colorMode));
+    }
+    if (s.dither) {
+      state.dither = s.dither;
+      document.querySelectorAll('[data-dither]').forEach(b => b.classList.toggle('active', b.dataset.dither === s.dither));
+    }
+    if (s.brightness !== undefined) {
+      state.brightness = s.brightness;
+      $('brightnessSlider').value = s.brightness;
+      $('brightnessVal').textContent = s.brightness;
+    }
+    if (s.contrast !== undefined) {
+      state.contrast = s.contrast;
+      $('contrastSlider').value = s.contrast;
+      $('contrastVal').textContent = s.contrast;
+    }
+    if (s.threshold !== undefined) {
+      state.threshold = s.threshold;
+      $('thresholdSlider').value = s.threshold;
+      $('thresholdVal').textContent = s.threshold;
+    }
+    if (s.redSens !== undefined) {
+      state.redSens = s.redSens;
+      $('redSensSlider').value = s.redSens;
+      $('redSensVal').textContent = `${s.redSens}%`;
+    }
+    if (s.invert !== undefined) {
+      state.invert = s.invert;
+      $('invertToggle').checked = s.invert;
+    }
+    if (s.displayMount !== undefined) {
+      state.displayMount = s.displayMount;
+      document.querySelectorAll('[data-mount]').forEach(b => b.classList.toggle('active', parseInt(b.dataset.mount, 10) === s.displayMount));
+    }
+    if (s.autoReconnect !== undefined) {
+      $('autoReconnectToggle').checked = s.autoReconnect;
+    }
+  } catch(e) {}
+}
+
+// Initial Boot
+window.addEventListener('DOMContentLoaded', () => {
+  if (!navigator.bluetooth) {
+    $('compatBanner').style.display = 'flex';
+  }
+
+  loadSettings();
+  applyTheme(state.theme);
+  loadImage(createDefaultPattern());
+  log('E-Ink Tag Studio ready. Drag image to pan, wheel to zoom.');
+});
 </script>
 </body>
 </html>
